@@ -1,5 +1,6 @@
 import sys
 import requests
+from time import sleep
 from PIL import Image
 from qcapi import QCPlayer
 from io import BytesIO
@@ -41,7 +42,8 @@ def put_blyph(bl, col, target, offset_x, offset_y):
                 continue
             v = bmp.buffer[y*bmp.width + x]
             target.putpixel((offset_x + x, offset_y + y),
-                            (int(col[0]*v), int(col[1]*v), int(col[2]*v), int(col[3]*v)))
+                            (int(col[0]*v), int(col[1]*v), int(col[2]*v),
+                             int(col[3]*v)))
             # print("v={}, col[0]*v={}".format(v, col[0]*v))
 
 
@@ -61,8 +63,7 @@ def get_delta_fmt(delta):
     return "(" + str(s) + ")", col
 
 
-if __name__ == "__main__":
-    name = sys.argv[1]
+def make_rank_image(name):
     player = QCPlayer.from_name(name)
     rank = player.get_rank_name("duel")
     req = requests.get("https://stats.quake.com/ranks/{}.png".format(rank))
@@ -71,16 +72,30 @@ if __name__ == "__main__":
 
     text = create_target()
     text.paste(img, (0, 0, img.width, img.height))
-    offset = put_text(str(player.get_rank("duel")), FONT_SIZE, (1, 1, 1, 1), text,
-                      (70, int((TARGET_SIZE[1] - FONT_SIZE)/2)))
+    offset = put_text(str(player.get_rank("duel")), FONT_SIZE, (1, 1, 1, 1),
+                      text, (70, int((TARGET_SIZE[1] - FONT_SIZE)/2)))
 
     rank_delta = player.get_rank_data("duel")["lastChange"]
-    print("delta = " + str(rank_delta))
+    # print("delta = " + str(rank_delta))
     txt, col = get_delta_fmt(rank_delta)
-    print("colour=")
-    print(col)
+    # print("colour=")
+    # print(col)
     put_text(txt, FONT_SIZE * 2/3, col, text,
              (offset+10, int((TARGET_SIZE[1] - FONT_SIZE)/2)))
 
     text.save("rank.png")
+
+
+if __name__ == "__main__":
+    name = sys.argv[1]
+    loop = False
+    interval = -1
+    if len(sys.argv) > 2:
+        if sys.argv[2] == "loop":
+            interval = int(sys.argv[3])
+            loop = True
+
+    while(loop):
+        make_rank_image(name)
+        sleep(interval)
     FT_Done_FreeType(library)
